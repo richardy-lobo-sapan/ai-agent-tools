@@ -92,7 +92,11 @@ if prompt := st.chat_input("Ask me anything..."):
         with st.spinner("Thinking..."):
             try:
                 result = agent.invoke({"messages": [("human", prompt)]})
-                answer = result["messages"][-1].content
+                last_message = result["messages"][-1]
+                if isinstance(last_message.content, list):
+                    answer = " ".join([c.get("text", "") for c in last_message.content if isinstance(c, dict)])
+                else:
+                    answer = last_message.content
                 st.markdown(answer)
                 st.session_state.messages.append({
                     "role": "assistant",

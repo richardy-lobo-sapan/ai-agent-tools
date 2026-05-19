@@ -1,8 +1,8 @@
 # AI Agent with Tools
 
-An AI agent powered by **Google Gemini** and **LangChain** that can search the web, perform calculations, and answer multi-step questions by chaining tools together automatically.
+An AI agent powered by **Google Gemini** and **LangGraph** that can search the web, perform calculations, and answer complex multi-step questions by chaining tools together automatically.
 
-🚀 **Live Demo:** *(coming soon — deploying after quota reset)*
+🚀 **Live Demo:** https://ai-agent-tools-cwd7wrxjhyntnbicdccsri.streamlit.app
 
 ---
 
@@ -10,20 +10,25 @@ An AI agent powered by **Google Gemini** and **LangChain** that can search the w
 
 The agent decides which tools to use based on your question — no manual selection needed.
 
+```
 You ask a question
-↓
+        ↓
 Agent reasons about which tools are needed
-↓
+        ↓
 Runs tools in sequence automatically
-↓
+        ↓
 Combines results into a final answer
+```
 
 **Example multi-step reasoning:**
+```
 Question: "What is the current Bitcoin price and how much is 0.5 BTC in Indonesian Rupiah?"
+
 Step 1 → web_search: "current Bitcoin price" → $76,408.56
 Step 2 → web_search: "USD to IDR exchange rate" → 17,515.27
 Step 3 → calculate: 0.5 * 76408.56 * 17515.27 → 669,158,279
 Answer: 0.5 BTC = Rp 669,158,279
+```
 
 ---
 
@@ -39,10 +44,11 @@ Answer: 0.5 BTC = Rp 669,158,279
 
 ## Tech Stack
 
-- **Google Gemini 2.5 Flash** — LLM for reasoning and tool selection
-- **LangChain** — Agent framework and tool calling
+- **Google Gemini** — LLM for reasoning and tool selection
+- **LangChain** — Tool definitions and integrations
+- **LangGraph** — Agent framework (ReAct pattern)
 - **Tavily API** — Web search tool built for LLM agents
-- **Streamlit** — Web UI
+- **Streamlit** — Web UI and deployment
 - **python-dotenv** — Environment variable management
 
 ---
@@ -50,24 +56,26 @@ Answer: 0.5 BTC = Rp 669,158,279
 ## How Agents Work
 
 ```python
-# 1. Define tools
+from langgraph.prebuilt import create_react_agent
+
+# Define tools
 tools = [web_search, calculate, get_current_date]
 
-# 2. Create agent
-agent = create_tool_calling_agent(llm, tools, prompt)
-agent_executor = AgentExecutor(agent=agent, tools=tools)
+# Create agent
+agent = create_react_agent(llm, tools)
 
-# 3. Agent reasons and acts automatically
-result = agent_executor.invoke({"input": "What is 15% of 85000?"})
+# Agent reasons and acts automatically
+result = agent.invoke({"messages": [("human", "What is 15% of 85000?")]})
 # Agent → uses calculate tool → returns 12750
 ```
 
 **The ReAct Pattern:**
-
+```
 Reason  → "I need to calculate 15% of 85000"
 Act     → calculate("0.15 * 85000")
 Observe → "12750.0"
 Answer  → "15% of 85000 is 12750"
+```
 
 ---
 
@@ -124,7 +132,7 @@ ai-agent-tools/
 | ReAct pattern | Reason → Act → Observe → repeat until answer found |
 | Agent loop | Model keeps calling tools until it has enough info |
 | Multi-step reasoning | Chain multiple tools to answer complex questions |
-| AgentExecutor | LangChain wrapper that manages the tool-calling loop |
+| LangGraph | Framework for building stateful agent workflows |
 
 ---
 

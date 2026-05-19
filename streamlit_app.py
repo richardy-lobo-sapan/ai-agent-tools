@@ -12,23 +12,19 @@ st.set_page_config(
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
-if "agent_executor" not in st.session_state:
-    st.session_state.agent_executor = None
 
 @st.cache_resource
 def load_agent():
     from langchain_google_genai import ChatGoogleGenerativeAI
-    from langchain.agents import AgentExecutor, create_tool_calling_agent
-    from langchain_core.prompts import ChatPromptTemplate
-    from langchain_community.tools.tavily_search import TavilySearchResults
     from langchain_core.tools import tool
+    from langchain_community.tools.tavily_search import TavilySearchResults
+    from langgraph.prebuilt import create_react_agent
     from datetime import datetime
 
     llm = ChatGoogleGenerativeAI(
         model="gemini-2.5-flash",
         google_api_key=os.getenv("GOOGLE_API_KEY"),
-        temperature=0,
-        request_timeout=30
+        temperature=0
     )
 
     web_search = TavilySearchResults(
@@ -53,22 +49,8 @@ def load_agent():
         return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     tools = [web_search, calculate, get_current_date]
-
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", "You are a helpful AI assistant with access to tools. Use tools when needed. Think step by step."),
-        ("human", "{input}"),
-        ("placeholder", "{agent_scratchpad}")
-    ])
-
-    agent = create_tool_calling_agent(llm, tools, prompt)
-    agent_executor = AgentExecutor(
-        agent=agent,
-        tools=tools,
-        verbose=False,
-        max_iterations=5,
-        handle_parsing_errors=True
-    )
-    return agent_executor
+    agent = create_react_agent(llm, tools)
+    return agent
 
 with st.sidebar:
     st.title("🤖 AI Agent")
@@ -95,7 +77,7 @@ st.caption("Ask me anything — I can search the web, do math, and more")
 st.divider()
 
 with st.spinner("Loading agent..."):
-    agent_executor = load_agent()
+    agent = load_agent()
 
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
@@ -109,8 +91,8 @@ if prompt := st.chat_input("Ask me anything..."):
     with st.chat_message("assistant"):
         with st.spinner("Thinking..."):
             try:
-                result = agent_executor.invoke({"input": prompt})
-                answer = result["output"]
+                result = agent.invoke({"messages": [("human", prompt)]})
+                answer = result["messages"][-1].content
                 st.markdown(answer)
                 st.session_state.messages.append({
                     "role": "assistant",
